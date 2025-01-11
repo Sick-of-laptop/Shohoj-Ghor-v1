@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SidebarView: View {
     @Binding var isShowing: Bool
+    @EnvironmentObject var authViewModel: AuthViewModel
     
     var body: some View {
         ZStack {
@@ -80,7 +81,10 @@ struct SidebarView: View {
                             
                             // Logout Button
                             Button(action: {
-                                // Handle logout
+                                withAnimation {
+                                    isShowing = false
+                                    authViewModel.signOut()
+                                }
                             }) {
                                 HStack(spacing: 16) {
                                     Image(systemName: "arrow.right.square")

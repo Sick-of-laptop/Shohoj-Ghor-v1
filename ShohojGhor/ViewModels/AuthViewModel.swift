@@ -1,144 +1,219 @@
 import Foundation
 import FirebaseAuth
-import GoogleSignIn
+import FirebaseFirestore
 
 class AuthViewModel: ObservableObject {
-    @Published var user: User?
-    @Published var alertItem: AlertItem?
+    @Published var userSession: FirebaseAuth.User?
+    @Published var currentUser: User?
+    @Published var errorMessage: String = ""
+    @Published var successMessage: String = ""
+    @Published var showError: Bool = false
+    @Published var showSuccess: Bool = false
+    @Published var isLoading: Bool = false
+    @Published var isAuthenticated: Bool = false
     
     init() {
-        user = Auth.auth().currentUser
-    }
-    
-    func login(email: String, password: String) {
-        Auth.auth().signIn(withEmail: email, password: password) { [weak self] result, error in
-            if let error = error {
-                self?.alertItem = AlertItem(
-                    title: "Login Error",
-                    message: error.localizedDescription
-                )
-                return
-            }
-            
-            self?.user = result?.user
+        self.userSession = Auth.auth().currentUser
+        self.isAuthenticated = userSession != nil
+        
+        if let userSession = userSession {
+            fetchUser(withUid: userSession.uid)
         }
     }
     
-    func signup(name: String, email: String, password: String, confirmPassword: String, phoneNumber: String) {
+    // Validation functions
+    func isValidEmail(_ email: String) -> Bool {
+        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        let emailPred = NSPredicate(format:"SELF MATCHES %@", emailRegEx)
+        return emailPred.evaluate(with: email)
+    }
+    
+    func isValidPassword(_ password: String) -> Bool {
+        return password.count >= 8
+    }
+    
+    func isValidPhone(_ phone: String) -> Bool {
+        let phoneRegEx = "^[0-9]{11}$" // For Bangladesh numbers
+        let phonePred = NSPredicate(format: "SELF MATCHES %@", phoneRegEx)
+        return phonePred.evaluate(with: phone)
+    }
+    
+    func login(withEmail email: String, password: String) {
         // Validate inputs
-        guard !name.isEmpty else {
-            alertItem = AlertItem(title: "Invalid Name", message: "Please enter your name")
+        guard !email.isEmpty else {
+            self.errorMessage = "Email cannot be empty"
+            self.showError = true
             return
         }
         
-        guard !email.isEmpty, email.contains("@") else {
-            alertItem = AlertItem(title: "Invalid Email", message: "Please enter a valid email")
+        guard isValidEmail(email) else {
+            self.errorMessage = "Please enter a valid email"
+            self.showError = true
             return
         }
         
-        guard password.count >= 6 else {
-            alertItem = AlertItem(title: "Invalid Password", message: "Password must be at least 6 characters")
+        guard !password.isEmpty else {
+            self.errorMessage = "Password cannot be empty"
+            self.showError = true
             return
         }
         
-        guard password == confirmPassword else {
-            alertItem = AlertItem(title: "Password Mismatch", message: "Passwords do not match")
-            return
-        }
-        
-        Auth.auth().createUser(withEmail: email, password: password) { [weak self] result, error in
-            if let error = error {
-                self?.alertItem = AlertItem(
-                    title: "Signup Error",
-                    message: error.localizedDescription
-                )
-                return
-            }
+        isLoading = true
+        Auth.auth().signIn(withEmail: email, password: password) { [weak self] result, error in
+            guard let self = self else { return }
             
-            // Update user profile
-            let changeRequest = result?.user.createProfileChangeRequest()
-            changeRequest?.displayName = name
-            changeRequest?.commitChanges { error in
+            DispatchQueue.main.async {
+                self.isLoading = false
                 if let error = error {
-                    print("Error updating profile: \(error.localizedDescription)")
-                }
-            }
-            
-            self?.user = result?.user
-        }
-    }
-    
-    func signInWithGoogle() {
-        guard let clientID = FirebaseApp.app()?.options.clientID else { return }
-        
-        let config = GIDConfiguration(clientID: clientID)
-        GIDSignIn.sharedInstance.configuration = config
-        
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first,
-              let rootViewController = window.rootViewController else {
-            return
-        }
-        
-        GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { [weak self] result, error in
-            if let error = error {
-                self?.alertItem = AlertItem(
-                    title: "Google Sign In Error",
-                    message: error.localizedDescription
-                )
-                return
-            }
-            
-            guard let user = result?.user,
-                  let idToken = user.idToken?.tokenString else {
-                return
-            }
-            
-            let credential = GoogleAuthProvider.credential(
-                withIDToken: idToken,
-                accessToken: user.accessToken.tokenString
-            )
-            
-            Auth.auth().signIn(with: credential) { result, error in
-                if let error = error {
-                    self?.alertItem = AlertItem(
-                        title: "Authentication Error",
-                        message: error.localizedDescription
-                    )
+                    self.errorMessage = error.localizedDescription
+                    self.showError = true
                     return
                 }
                 
-                self?.user = result?.user
+                guard let user = result?.user else { return }
+                self.userSession = user
+                self.successMessage = "Login successful!"
+                self.showSuccess = true
+                
+                // Delay the navigation slightly to show the success message
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    self.isAuthenticated = true
+                    self.fetchUser(withUid: user.uid)
+                }
             }
         }
     }
     
-    func sendPasswordReset(email: String) {
-        Auth.auth().sendPasswordReset(withEmail: email) { [weak self] error in
-            if let error = error {
-                self?.alertItem = AlertItem(
-                    title: "Password Reset Error",
-                    message: error.localizedDescription
-                )
+    func register(withEmail email: String, password: String, fullName: String, phone: String) {
+        // Validate inputs
+        guard !fullName.isEmpty else {
+            self.errorMessage = "Name cannot be empty"
+            self.showError = true
+            return
+        }
+        
+        guard !email.isEmpty else {
+            self.errorMessage = "Email cannot be empty"
+            self.showError = true
+            return
+        }
+        
+        guard isValidEmail(email) else {
+            self.errorMessage = "Please enter a valid email"
+            self.showError = true
+            return
+        }
+        
+        guard !phone.isEmpty else {
+            self.errorMessage = "Phone number cannot be empty"
+            self.showError = true
+            return
+        }
+        
+        guard isValidPhone(phone) else {
+            self.errorMessage = "Please enter a valid phone number"
+            self.showError = true
+            return
+        }
+        
+        guard isValidPassword(password) else {
+            self.errorMessage = "Password must be at least 8 characters"
+            self.showError = true
+            return
+        }
+        
+        isLoading = true
+        // Check if email already exists
+        Auth.auth().fetchSignInMethods(forEmail: email) { [weak self] methods, error in
+            guard let self = self else { return }
+            
+            if let _ = methods {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.errorMessage = "Email already exists"
+                    self.showError = true
+                }
                 return
             }
             
-            self?.alertItem = AlertItem(
-                title: "Password Reset",
-                message: "Password reset email has been sent"
-            )
+            // Create user
+            Auth.auth().createUser(withEmail: email, password: password) { [weak self] result, error in
+                guard let self = self else { return }
+                
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    if let error = error {
+                        self.errorMessage = error.localizedDescription
+                        self.showError = true
+                        return
+                    }
+                    
+                    guard let user = result?.user else { return }
+                    
+                    let data = [
+                        "email": email,
+                        "fullName": fullName,
+                        "phone": phone,
+                        "uid": user.uid,
+                        "createdAt": Timestamp()
+                    ]
+                    
+                    Firestore.firestore().collection("users")
+                        .document(user.uid)
+                        .setData(data) { [weak self] error in
+                            guard let self = self else { return }
+                            
+                            DispatchQueue.main.async {
+                                if let error = error {
+                                    self.errorMessage = error.localizedDescription
+                                    self.showError = true
+                                    return
+                                }
+                                
+                                self.userSession = user
+                                self.successMessage = "Registration successful!"
+                                self.showSuccess = true
+                                
+                                // Delay the navigation slightly to show the success message
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                    self.isAuthenticated = true
+                                    self.fetchUser(withUid: user.uid)
+                                }
+                            }
+                        }
+                }
+            }
         }
     }
     
     func signOut() {
         do {
             try Auth.auth().signOut()
-            user = nil
+            self.userSession = nil
+            self.currentUser = nil
+            self.isAuthenticated = false
         } catch {
-            alertItem = AlertItem(
-                title: "Sign Out Error",
-                message: error.localizedDescription
-            )
+            self.errorMessage = error.localizedDescription
+            self.showError = true
         }
+    }
+    
+    private func fetchUser(withUid uid: String) {
+        Firestore.firestore().collection("users")
+            .document(uid)
+            .getDocument { [weak self] snapshot, error in
+                guard let self = self else { return }
+                
+                DispatchQueue.main.async {
+                    if let error = error {
+                        self.errorMessage = error.localizedDescription
+                        self.showError = true
+                        return
+                    }
+                    
+                    guard let data = snapshot?.data() else { return }
+                    self.currentUser = User(data: data)
+                }
+            }
     }
 } 
