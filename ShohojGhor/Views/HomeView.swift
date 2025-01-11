@@ -1,11 +1,10 @@
 import SwiftUI
 
 struct HomeView: View {
-    @State private var selectedCategory = 0
+    @StateObject private var productViewModel = ProductViewModel()
+    @State private var selectedCategory: ProductCategory = .all
     @State private var isAnimating = false
     @Binding var showSidebar: Bool
-    
-    let categories = ["All", "Popular", "For You", "New"]
     
     var body: some View {
         NavigationView {
@@ -14,13 +13,13 @@ struct HomeView: View {
                     // Categories
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 20) {
-                            ForEach(0..<categories.count) { index in
+                            ForEach(ProductCategory.allCases, id: \.self) { category in
                                 CategoryButton(
-                                    title: categories[index],
-                                    isSelected: selectedCategory == index
+                                    title: category.rawValue,
+                                    isSelected: selectedCategory == category
                                 ) {
                                     withAnimation {
-                                        selectedCategory = index
+                                        selectedCategory = category
                                     }
                                 }
                             }
@@ -28,13 +27,13 @@ struct HomeView: View {
                         .padding(.horizontal)
                     }
                     
-                    // Featured Items
-                    FeaturedItemsView()
+                    // Featured Items with sliding
+                    FeaturedItemsView(products: productViewModel.filteredProducts(for: selectedCategory))
                         .opacity(isAnimating ? 1 : 0)
                         .offset(y: isAnimating ? 0 : 50)
                     
                     // Popular Items Grid
-                    PopularItemsGridView()
+                    PopularItemsGridView(products: productViewModel.filteredProducts(for: selectedCategory))
                         .opacity(isAnimating ? 1 : 0)
                         .offset(y: isAnimating ? 0 : 30)
                 }

@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct FeaturedItemsView: View {
+    let products: [Product]
+    @State private var currentIndex = 0
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Featured")
@@ -8,22 +11,26 @@ struct FeaturedItemsView: View {
                 .fontWeight(.bold)
                 .padding(.horizontal)
             
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(0..<5) { _ in
-                        FeaturedItemCard()
-                    }
+            TabView(selection: $currentIndex) {
+                ForEach(products.indices, id: \.self) { index in
+                    FeaturedItemCard(product: products[index])
+                        .tag(index)
                 }
-                .padding(.horizontal)
             }
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
+            .frame(height: 300)
+            .animation(.easeInOut, value: currentIndex)
         }
     }
 }
 
 struct FeaturedItemCard: View {
+    let product: Product
+    
     var body: some View {
-        NavigationLink(destination: ProductDetailView()) {
+        NavigationLink(destination: ProductDetailView(product: product)) {
             VStack(alignment: .leading) {
+                // Product Image
                 Rectangle()
                     .fill(Color.gray.opacity(0.2))
                     .frame(width: 200, height: 200)
@@ -34,11 +41,11 @@ struct FeaturedItemCard: View {
                     )
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Luxury Sofa")
+                    Text(product.name)
                         .font(.headline)
                         .foregroundColor(ColorTheme.text)
                     
-                    Text("$599")
+                    Text("$\(product.price, specifier: "%.2f")")
                         .font(.subheadline)
                         .foregroundColor(ColorTheme.navigation)
                 }
@@ -47,6 +54,7 @@ struct FeaturedItemCard: View {
             .background(ColorTheme.primary)
             .cornerRadius(12)
             .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+            .padding(.horizontal)
         }
     }
 } 

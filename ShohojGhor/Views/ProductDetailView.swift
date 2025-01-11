@@ -5,33 +5,31 @@ struct ProductDetailView: View {
     @State private var selectedImageIndex = 0
     @State private var quantity = 1
     
-    let images = ["photo", "photo", "photo"] // Replace with actual product images
+    let product: Product
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Image Carousel
                 TabView(selection: $selectedImageIndex) {
-                    ForEach(0..<images.count, id: \.self) { index in
-                        Rectangle()
-                            .fill(Color.gray.opacity(0.2))
-                            .aspectRatio(1, contentMode: .fit)
-                            .overlay(
-                                Image(systemName: images[index])
-                                    .foregroundColor(ColorTheme.secondaryText)
-                            )
-                    }
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.2))
+                        .aspectRatio(1, contentMode: .fit)
+                        .overlay(
+                            Image(systemName: "photo")
+                                .foregroundColor(ColorTheme.secondaryText)
+                        )
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
                 .frame(height: 300)
                 
                 VStack(alignment: .leading, spacing: 16) {
                     // Product Info
-                    Text("Modern Chair")
+                    Text(product.name)
                         .font(.title2)
                         .fontWeight(.bold)
                     
-                    Text("$199")
+                    Text("$\(product.price, specifier: "%.2f")")
                         .font(.title3)
                         .foregroundColor(ColorTheme.navigation)
                     
@@ -55,7 +53,7 @@ struct ProductDetailView: View {
                     // Description
                     Text("Description")
                         .font(.headline)
-                    Text("A modern chair with elegant design and comfortable seating. Perfect for any contemporary home setting.")
+                    Text(product.description)
                         .foregroundColor(ColorTheme.secondaryText)
                     
                     // Add to Cart Button
@@ -76,5 +74,20 @@ struct ProductDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .background(ColorTheme.background)
+    }
+}
+
+// Preview provider
+struct ProductDetailView_Previews: PreviewProvider {
+    static var previews: some View {
+        ProductDetailView(product: Product(
+            name: "Sample Product",
+            price: 99.99,
+            description: "Sample description",
+            image: "photo",
+            category: .all,
+            isPopular: true,
+            isNew: false
+        ))
     }
 } 

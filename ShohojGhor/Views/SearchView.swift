@@ -1,9 +1,21 @@
 import SwiftUI
 
 struct SearchView: View {
+    @StateObject private var productViewModel = ProductViewModel()
     @State private var searchText = ""
     @State private var selectedFilter = "All"
     let filters = ["All", "Furniture", "Appliances", "Decor", "Kitchen"]
+    
+    var filteredProducts: [Product] {
+        if searchText.isEmpty {
+            return productViewModel.products
+        } else {
+            return productViewModel.products.filter { product in
+                product.name.lowercased().contains(searchText.lowercased()) ||
+                product.description.lowercased().contains(searchText.lowercased())
+            }
+        }
+    }
     
     var body: some View {
         NavigationView {
@@ -48,8 +60,8 @@ struct SearchView: View {
                         GridItem(.flexible(), spacing: 16),
                         GridItem(.flexible(), spacing: 16)
                     ], spacing: 16) {
-                        ForEach(0..<10) { _ in
-                            SearchResultCard()
+                        ForEach(filteredProducts) { product in
+                            SearchResultCard(product: product)
                         }
                     }
                     .padding()
@@ -81,8 +93,10 @@ struct FilterChip: View {
 }
 
 struct SearchResultCard: View {
+    let product: Product
+    
     var body: some View {
-        NavigationLink(destination: ProductDetailView()) {
+        NavigationLink(destination: ProductDetailView(product: product)) {
             VStack(alignment: .leading) {
                 // Product Image
                 Rectangle()
@@ -96,12 +110,12 @@ struct SearchResultCard: View {
                 
                 // Product Info
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Modern Chair")
+                    Text(product.name)
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(ColorTheme.text)
                     
-                    Text("$199")
+                    Text("$\(product.price, specifier: "%.2f")")
                         .font(.caption)
                         .foregroundColor(ColorTheme.navigation)
                 }
@@ -112,4 +126,8 @@ struct SearchResultCard: View {
             .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
         }
     }
+}
+
+#Preview {
+    SearchView()
 } 

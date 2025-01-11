@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct PopularItemsGridView: View {
+    let products: [Product]
     let columns = [
         GridItem(.flexible(), spacing: 16),
         GridItem(.flexible(), spacing: 16)
@@ -14,8 +15,8 @@ struct PopularItemsGridView: View {
                 .padding(.horizontal)
             
             LazyVGrid(columns: columns, spacing: 16) {
-                ForEach(0..<6) { _ in
-                    PopularItemCard()
+                ForEach(products) { product in
+                    PopularItemCard(product: product)
                 }
             }
             .padding(.horizontal)
@@ -24,8 +25,10 @@ struct PopularItemsGridView: View {
 }
 
 struct PopularItemCard: View {
+    let product: Product
+    
     var body: some View {
-        NavigationLink(destination: ProductDetailView()) {
+        NavigationLink(destination: ProductDetailView(product: product)) {
             VStack(alignment: .leading) {
                 Rectangle()
                     .fill(Color.gray.opacity(0.2))
@@ -37,12 +40,12 @@ struct PopularItemCard: View {
                     )
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Modern Chair")
+                    Text(product.name)
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(ColorTheme.text)
                     
-                    Text("$199")
+                    Text("$\(product.price, specifier: "%.2f")")
                         .font(.caption)
                         .foregroundColor(ColorTheme.navigation)
                 }
