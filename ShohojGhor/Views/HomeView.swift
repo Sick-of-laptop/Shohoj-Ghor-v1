@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @State private var selectedCategory = 0
     @State private var isAnimating = false
+    @Binding var showSidebar: Bool
     
     let categories = ["All", "Popular", "For You", "New"]
     
@@ -41,10 +42,13 @@ struct HomeView: View {
             .navigationTitle("Shohoj Ghor")
             .navigationBarItems(
                 trailing: Button(action: {
-                    // Show sidebar
+                    withAnimation {
+                        showSidebar.toggle()
+                    }
                 }) {
                     Image(systemName: "ellipsis")
                         .foregroundColor(ColorTheme.text)
+                        .font(.title3)
                 }
             )
         }
@@ -74,5 +78,12 @@ struct CategoryButton: View {
                 .foregroundColor(isSelected ? .white : ColorTheme.text)
                 .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
         }
+    }
+}
+
+// Preview provider for HomeView
+struct HomeView_Previews: PreviewProvider {
+    static var previews: some View {
+        HomeView(showSidebar: .constant(false))
     }
 } 

@@ -9,7 +9,7 @@ struct SidebarView: View {
             Color.black.opacity(0.3)
                 .ignoresSafeArea()
                 .onTapGesture {
-                    withAnimation {
+                    withAnimation(.easeInOut) {
                         isShowing = false
                     }
                 }
@@ -20,39 +20,101 @@ struct SidebarView: View {
                 
                 VStack(alignment: .leading, spacing: 0) {
                     // Header
-                    HStack {
-                        Text("Menu")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            withAnimation {
-                                isShowing = false
-                            }
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(ColorTheme.secondaryText)
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Menu")
                                 .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(ColorTheme.text)
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                withAnimation(.easeInOut) {
+                                    isShowing = false
+                                }
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(ColorTheme.navigation)
+                                    .font(.title2)
+                            }
                         }
+                        
+                        Rectangle()
+                            .fill(ColorTheme.navigation.opacity(0.2))
+                            .frame(height: 1)
                     }
                     .padding()
+                    .background(ColorTheme.primary)
+                    
+                    // User Profile Section
+                    VStack(spacing: 12) {
+                        Image(systemName: "person.circle.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(ColorTheme.navigation)
+                        
+                        Text("John Doe")
+                            .font(.headline)
+                            .foregroundColor(ColorTheme.text)
+                        
+                        Text("john.doe@example.com")
+                            .font(.subheadline)
+                            .foregroundColor(ColorTheme.secondaryText)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(ColorTheme.background.opacity(0.5))
                     
                     // Menu Items
-                    VStack(spacing: 0) {
-                        SidebarMenuItem(icon: "bag", title: "My Orders")
-                        SidebarMenuItem(icon: "info.circle", title: "About")
-                        SidebarMenuItem(icon: "questionmark.circle", title: "Help")
-                        SidebarMenuItem(icon: "arrow.right.square", title: "Logout")
+                    ScrollView {
+                        VStack(spacing: 8) {
+                            SidebarMenuItem(icon: "bag", title: "My Orders", count: "3")
+                            SidebarMenuItem(icon: "heart", title: "Wishlist", count: "12")
+                                                                                SidebarMenuItem(icon: "bell", title: "Notifications", count: "5")
+                            SidebarMenuItem(icon: "info.circle", title: "About")
+                            SidebarMenuItem(icon: "questionmark.circle", title: "Help & Support")
+                            
+                            Divider()
+                                .padding(.vertical, 8)
+                                .background(ColorTheme.primary)
+                            
+                            // Logout Button
+                            Button(action: {
+                                // Handle logout
+                            }) {
+                                HStack(spacing: 16) {
+                                    Image(systemName: "arrow.right.square")
+                                        .font(.title3)
+                                    Text("Logout")
+                                        .font(.headline)
+                                    Spacer()
+                                }
+                                .foregroundColor(.red)
+                                .padding()
+                                .background(Color.red.opacity(0.1))
+                                .cornerRadius(12)
+                                .padding(.horizontal)
+                            }
+                        }
+                        .padding(.vertical)
                     }
                     
                     Spacer()
+                    
+                    // App Version
+                    Text("Version 1.0.0")
+                        .font(.caption)
+                        .foregroundColor(ColorTheme.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.bottom)
                 }
                 .frame(width: UIScreen.main.bounds.width * 0.75)
                 .background(ColorTheme.primary)
                 .edgesIgnoringSafeArea(.vertical)
+                .shadow(color: Color.black.opacity(0.1), radius: 10, x: -5, y: 0)
             }
+            .offset(x: isShowing ? 0 : UIScreen.main.bounds.width)
+            .animation(.easeInOut(duration: 0.3), value: isShowing)
         }
     }
 }
@@ -60,20 +122,48 @@ struct SidebarView: View {
 struct SidebarMenuItem: View {
     let icon: String
     let title: String
+    var count: String? = nil
     
     var body: some View {
         Button(action: {
             // Handle menu item tap
         }) {
             HStack(spacing: 16) {
-                Image(systemName: icon)
+                Image(systemName: icon + ".fill")
+                    .font(.title3)
                     .frame(width: 24)
+                    .foregroundColor(ColorTheme.navigation)
+                
                 Text(title)
+                    .font(.subheadline)
+                    .foregroundColor(ColorTheme.text)
+                
                 Spacer()
+                
+                if let count = count {
+                    Text(count)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(ColorTheme.navigation)
+                        .clipShape(Capsule())
+                }
+                
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(ColorTheme.secondaryText)
             }
-            .foregroundColor(ColorTheme.text)
-            .padding()
+            .padding(.horizontal)
+            .padding(.vertical, 12)
+            .background(ColorTheme.primary)
+            .contentShape(Rectangle())
         }
-        .background(ColorTheme.primary)
+        .buttonStyle(PlainButtonStyle())
     }
+}
+
+#Preview {
+    SidebarView(isShowing: .constant(true))
 } 

@@ -124,6 +124,8 @@ struct CartItemRow: View {
 }
 
 struct EmptyCartView: View {
+    @State private var showSidebar = false
+    
     var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "cart.badge.minus")
@@ -140,7 +142,7 @@ struct EmptyCartView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
             
-            NavigationLink(destination: HomeView()) {
+            NavigationLink(destination: HomeView(showSidebar: $showSidebar)) {
                 Text("Start Shopping")
                     .fontWeight(.medium)
                     .foregroundColor(.white)
